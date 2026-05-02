@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+bdx_hosting.db
+user_files/
+*.log
+.DS_Store
+venv/
+env/
