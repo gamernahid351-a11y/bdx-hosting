@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel — BDX Hosting{% endblock %}
+{% block content %}
+<div class="container" style="padding-top:32px;padding-bottom:48px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 style="font-size:1.8rem;font-weight:900;letter-spacing:-1px">Admin <span class="red">Panel</span></h1>
+      <p style="color:var(--text2);margin-top:4px">BDX Hosting Server — Full Control</p>
+    </div>
+    <span class="badge-admin">ADMIN</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-val">{{ stats.total_users }}</div>
+      <div class="stat-card-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val">{{ stats.total_servers }}</div>
+      <div class="stat-card-label">Total Servers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val" style="color:var(--green)">{{ stats.running_servers }}</div>
+      <div class="stat-card-label">Running Servers</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('users', this)">👥 Users ({{ users|length }})</button>
+    <button class="tab" onclick="showTab('servers', this)">🖥️ Servers ({{ servers|length }})</button>
+  </div>
+
+  <!-- Users Tab -->
+  <div id="tab-users" class="tab-content active">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Username</th><th>Email</th><th>Plan</th><th>API Key</th><th>Registered</th><th>Set Plan</th><th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td style="color:var(--text3)">#{{ u.id }}</td>
+              <td><strong>{{ u.username }}</strong></td>
+              <td style="font-size:0.82rem;color:var(--text2)">{{ u.email }}</td>
+              <td>
+                {% set pkg = packages|selectattr('id','eq',u.package_id)|first if u.package_id else None %}
+                {% if pkg %}
+                  <span class="status-badge status-running">{{ pkg.name }}</span>
+                {% else %}
+                  <span style="color:var(--text3);font-size:0.8rem">None</span>
+                {% endif %}
+              </td>
+              <td style="font-family:var(--mono);font-size:0.75rem;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis">{{ u.api_key[:20] }}...</td>
+              <td style="font-size:0.8rem;color:var(--text3)">{{ u.created_at[:10] }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_set_package', user_id=u.id) }}" style="display:flex;gap:6px;align-items:center">
+                  <select name="package_id" style="width:100px;padding:6px 10px;font-size:0.8rem">
+                    <option value="0" {% if not u.package_id %}selected{% endif %}>None</option>
+                    {% for pkg in packages %}
+                    <option value="{{ pkg.id }}" {% if u.package_id == pkg.id %}selected{% endif %}>{{ pkg.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-success btn-sm">Set</button>
+                </form>
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Delete user {{ u.username }}?')">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">No users yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Servers Tab -->
+  <div id="tab-servers" class="tab-content">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Server Name</th><th>User</th><th>Domain</th><th>Main File</th><th>Status</th><th>Created</th><th>Manage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for srv in servers %}
+            <tr>
+              <td style="color:var(--text3)">#{{ srv.id }}</td>
+              <td><strong>{{ srv.server_name }}</strong></td>
+              <td>
+                <div>{{ srv.username }}</div>
+                <div style="font-size:0.75rem;color:var(--text3)">{{ srv.email }}</div>
+              </td>
+              <td style="font-family:var(--mono);font-size:0.8rem;color:var(--red)">{{ srv.domain or '—' }}</td>
+              <td style="font-family:var(--mono);font-size:0.8rem;color:var(--text2)">{{ srv.main_file or '—' }}</td>
+              <td><span class="status-badge status-{{ srv.status }}">{{ srv.status }}</span></td>
+              <td style="font-size:0.8rem;color:var(--text3)">{{ srv.created_at[:10] }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_set_status', server_id=srv.id) }}" style="display:flex;flex-direction:column;gap:6px">
+                  <input type="text" name="domain" placeholder="Set domain" value="{{ srv.domain or '' }}" style="width:180px;padding:5px 8px;font-size:0.78rem">
+                  <div style="display:flex;gap:4px">
+                    <select name="status" style="padding:5px 8px;font-size:0.78rem">
+                      <option value="pending" {% if srv.status=='pending' %}selected{% endif %}>Pending</option>
+                      <option value="running" {% if srv.status=='running' %}selected{% endif %}>Running</option>
+                      <option value="stopped" {% if srv.status=='stopped' %}selected{% endif %}>Stopped</option>
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">Save</button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">No servers yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}
