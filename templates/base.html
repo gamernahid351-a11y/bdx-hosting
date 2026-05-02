@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}BDX Hosting Server{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <a href="{{ url_for('index') }}" class="logo">
+      <span class="logo-icon">⬡</span>
+      <span>BDX <span class="red">HOSTING</span></span>
+    </a>
+    <div class="nav-links">
+      {% if session.get('user_id') %}
+        <span class="nav-user">{{ session.get('username') }}</span>
+        {% if session.get('role') == 'admin' %}
+          <a href="{{ url_for('admin') }}" class="nav-link">Admin Panel</a>
+        {% else %}
+          <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-red btn-sm">Get Started</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}">
+            <span>{{ msg }}</span>
+            <button onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <span class="logo"><span class="logo-icon">⬡</span> BDX <span class="red">HOSTING</span> SERVER</span>
+      <span class="footer-sep">|</span>
+      <a href="https://t.me/proxaura" target="_blank" class="tg-link">Telegram: @proxaura</a>
+      <span class="footer-sep">|</span>
+      <span style="color:#666">© 2025 BDX Hosting. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  setTimeout(() => {
+    document.querySelectorAll('.flash').forEach(el => el.remove());
+  }, 5000);
+</script>
+</body>
+</html>
