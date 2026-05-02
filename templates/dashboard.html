@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — BDX Hosting{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>Dashboard</h1>
+    <p>Welcome back, <span class="red">{{ session.username }}</span> — manage your servers below</p>
+  </div>
+
+  <div class="dashboard-grid">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Plan Card -->
+      <div class="card card-red">
+        <div class="text-sm text-muted" style="text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px">Current Plan</div>
+        {% if package %}
+          <div class="plan-name">{{ package.name }}</div>
+          <div style="font-size:0.85rem;color:var(--text2);margin-top:4px">
+            {{ package.storage }} Storage · {{ package.bandwidth }} BW
+          </div>
+          {% for feat in package.features %}
+            <div class="plan-feat">✓ {{ feat }}</div>
+          {% endfor %}
+        {% else %}
+          <div class="plan-name" style="font-size:1rem;color:var(--text2)">No Active Plan</div>
+          <div style="font-size:0.82rem;color:var(--text3);margin-top:4px">Register for Starter (Free)</div>
+        {% endif %}
+        <hr class="divider">
+        <div style="font-size:0.82rem;color:var(--text2);margin-bottom:10px">Want more power? Upgrade your plan:</div>
+        <a href="https://t.me/proxaura" target="_blank" class="btn btn-red" style="width:100%;justify-content:center">Upgrade via Telegram</a>
+      </div>
+
+      <!-- Create Server -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">New Server</div>
+        <form method="POST" action="{{ url_for('create_server') }}">
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Server Name</label>
+            <input type="text" name="server_name" placeholder="my-app" required>
+          </div>
+          <button type="submit" class="btn btn-red" style="width:100%;justify-content:center">+ Create Server</button>
+        </form>
+      </div>
+
+      <!-- API Key -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">API Key</div>
+        <div class="api-key-box" title="Click to select">{{ user['api_key'] }}</div>
+        <div style="font-size:0.78rem;color:var(--text3);margin-top:8px">Use this key to access the REST API: <code>/api/server/YOUR_KEY</code></div>
+      </div>
+
+      <!-- Telegram -->
+      <div class="tg-banner" style="flex-direction:column;align-items:flex-start;gap:12px">
+        <div>
+          <div class="tg-banner-text">💬 Need help?</div>
+          <div class="tg-banner-sub">Buy packages, get domain, activate servers — all via Telegram admin</div>
+        </div>
+        <a href="https://t.me/proxaura" target="_blank" class="btn-tg">Open @proxaura</a>
+      </div>
+
+    </div>
+
+    <!-- Main content -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h2 style="font-size:1.1rem;font-weight:700">Your Servers ({{ servers|length }})</h2>
+      </div>
+
+      {% if servers %}
+        <div class="servers-grid">
+          {% for srv in servers %}
+          <a href="{{ url_for('server_detail', server_id=srv.id) }}" class="server-card">
+            <div class="server-info">
+              <div class="server-name">{{ srv.server_name }}</div>
+              <div class="server-domain">
+                {% if srv.domain %}
+                  🌐 {{ srv.domain }}
+                {% else %}
+                  — No domain assigned yet
+                {% endif %}
+              </div>
+              {% if srv.main_file %}
+                <div style="font-size:0.78rem;color:var(--text3);margin-top:2px;font-family:var(--mono)">Main: {{ srv.main_file }}</div>
+              {% endif %}
+            </div>
+            <div class="server-actions">
+              <span class="status-badge status-{{ srv.status }}">{{ srv.status }}</span>
+              <span style="color:var(--text3);font-size:1.2rem">›</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">🖥️</div>
+          <h3>No servers yet</h3>
+          <p style="font-size:0.85rem">Create your first server using the form on the left, then upload your ZIP file.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
