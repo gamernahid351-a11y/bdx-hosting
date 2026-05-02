@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}{{ server.server_name }} — BDX Hosting{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="server-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">
+          <a href="{{ url_for('dashboard') }}" style="color:var(--text3);text-decoration:none">Dashboard</a> › {{ server.server_name }}
+        </div>
+        <h1>{{ server.server_name }}</h1>
+        {% if server.domain %}
+          <div class="server-url">🌐 {{ server.domain }}</div>
+        {% else %}
+          <div style="font-size:0.85rem;color:var(--text3);margin-top:4px">No domain — contact admin via Telegram to activate</div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="status-badge status-{{ server.status }}">{{ server.status }}</span>
+        <a href="https://t.me/proxaura" target="_blank" class="btn-tg">Activate Server</a>
+        <form method="POST" action="{{ url_for('delete_server', server_id=server.id) }}" onsubmit="return confirm('Delete server permanently?')">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+
+    <!-- Upload ZIP -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">📦 Upload Project ZIP</div>
+        <span style="font-size:0.82rem;color:var(--text2)">requirements.txt auto-installed on upload</span>
+      </div>
+      <form method="POST" action="{{ url_for('upload_file', server_id=server.id) }}" enctype="multipart/form-data">
+        <label for="zipInput" class="upload-zone" id="uploadZone">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text" id="uploadText">Click to select ZIP file</div>
+          <div class="upload-sub">Only .zip files accepted · requirements.txt auto-installed</div>
+        </label>
+        <input type="file" name="zipfile" id="zipInput" accept=".zip" style="display:none" onchange="updateLabel(this)">
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+          <button type="submit" class="btn btn-red">Upload & Extract</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Files & Main file selector -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📂 Project Files</div>
+        <span style="font-size:0.82rem;color:var(--text3)">{{ files|length }} file(s)</span>
+      </div>
+      {% if files %}
+        <form method="POST" action="{{ url_for('set_main_file', server_id=server.id) }}">
+          <div class="files-list" style="margin-bottom:16px">
+            {% for f in files %}
+            <label class="file-item" style="cursor:pointer">
+              <input type="radio" name="main_file" value="{{ f.filename }}"
+                {% if server.main_file == f.filename %}checked{% endif %} required>
+              {% set ext = f.filetype|lower %}
+              <span class="file-ext {% if ext == '.py' %}ext-py{% elif ext in ['.html','.htm'] %}ext-html{% elif ext == '.js' %}ext-js{% elif ext == '.txt' %}ext-txt{% else %}ext-other{% endif %}">
+                {{ ext[1:] if ext else 'file' }}
+              </span>
+              <span>{{ f.filename }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Run Command</label>
+            <input type="text" name="run_command" placeholder="e.g. python app.py" value="{{ server.run_command or '' }}">
+          </div>
+          <button type="submit" class="btn btn-red" style="width:100%;justify-content:center">Set Main File</button>
+        </form>
+      {% else %}
+        <div class="empty-state" style="padding:32px 0">
+          <div class="empty-state-icon">📭</div>
+          <h3>No files yet</h3>
+          <p class="text-sm">Upload a ZIP file above</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Run command -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚡ Run Command</div>
+      </div>
+      <form method="POST" action="{{ url_for('run_command', server_id=server.id) }}" style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group">
+          <label>Shell Command</label>
+          <input type="text" name="command" placeholder="python app.py  or  ls -la" value="{{ server.run_command or '' }}">
+        </div>
+        <button type="submit" class="btn btn-red">Run →</button>
+      </form>
+      <hr class="divider">
+      <div class="card-title" style="margin-bottom:12px">📦 Install Packages</div>
+      <form method="POST" action="{{ url_for('install_packages', server_id=server.id) }}" style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group">
+          <label>pip install</label>
+          <input type="text" name="packages" placeholder="flask requests numpy pandas">
+        </div>
+        <button type="submit" class="btn btn-ghost">pip install →</button>
+      </form>
+    </div>
+
+    <!-- Server Info -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🖥️ Server Info</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:0.87rem">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span class="text-muted">Server Name</span>
+          <span class="text-mono">{{ server.server_name }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span class="text-muted">Domain</span>
+          <span class="text-mono" style="color:var(--red)">{{ server.domain or '— pending' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span class="text-muted">Status</span>
+          <span class="status-badge status-{{ server.status }}">{{ server.status }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span class="text-muted">Main File</span>
+          <span class="text-mono">{{ server.main_file or '— not set' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0">
+          <span class="text-muted">Created</span>
+          <span>{{ server.created_at[:10] }}</span>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="tg-banner" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div>
+          <div class="tg-banner-text" style="font-size:0.9rem">Get Domain + Activation</div>
+          <div class="tg-banner-sub">Contact admin to assign a domain and activate this server</div>
+        </div>
+        <a href="https://t.me/proxaura" target="_blank" class="btn-tg">@proxaura</a>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">📋 Command Logs</div>
+        <span style="font-size:0.82rem;color:var(--text3)">Last 20 commands</span>
+      </div>
+      {% if logs %}
+        <div class="log-box">
+          {% for log in logs %}
+          <div class="log-entry">
+            <div class="log-cmd">$ {{ log.action }}</div>
+            <div class="log-out">{{ log.output }}</div>
+            <div class="log-time">{{ log.created_at }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:24px 0">
+          <h3>No logs yet</h3>
+          <p class="text-sm">Run a command to see output here</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+function updateLabel(input) {
+  const label = document.getElementById('uploadText');
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
+  }
+}
+document.getElementById('uploadZone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.style.background = 'rgba(224,32,32,0.1)'; });
+document.getElementById('uploadZone').addEventListener('dragleave', e => { e.currentTarget.style.background = ''; });
+document.getElementById('uploadZone').addEventListener('drop', e => {
+  e.preventDefault(); e.currentTarget.style.background = '';
+  const dt = e.dataTransfer; if (dt.files.length) { const fi = document.getElementById('zipInput'); fi.files = dt.files; updateLabel(fi); }
+});
+</script>
+{% endblock %}
